@@ -16,21 +16,59 @@ import AppTextInput from '../components/AppTextInput';
 import AppButton from '../components/AppButton';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../navigation/types';
+import { validateEmail, validatePassword, sanitizeString } from '../lib/validation';
+import { loginRequest, storeTokens } from '../services/auth';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
 const LoginScreen = ({ navigation }: Props) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
+    const cleanEmail = sanitizeString(email).trim().toLowerCase();
+    const cleanPassword = sanitizeString(password);
 
-    console.log('Login attempt com:', { email, password });
-    if (!email || !password) {
+    if (!cleanEmail || !cleanPassword) {
       Alert.alert('Campos vazios', 'Por favor, preencha o e-mail e a senha.');
       return;
     }
-    Alert.alert('Login', `Bem-vindo(a) de volta!`);
+
+    if (!validateEmail(cleanEmail)) {
+      Alert.alert('E-mail inválido', 'Por favor, insira um endereço de e-mail válido.');
+      return;
+    }
+
+    if (!validatePassword(cleanPassword)) {
+      Alert.alert(
+        'Senha inválida',
+        'A senha deve ter pelo menos 8 caracteres e conter ao menos um número.'
+      );
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { accessToken, refreshToken } = await loginRequest(cleanEmail, cleanPassword);
+      await storeTokens(accessToken, refreshToken);
+
+      Alert.alert('Login realizado', 'Bem-vindo(a) de volta!');
+
+      // 🚀 Redireciona para a tela principal da aplicação
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'TabNavigator' as never }], // <-- substitua 'TabNavigator' pelo nome da sua rota principal
+      });
+    } catch (err: any) {
+      console.error('Erro de login:', err);
+      Alert.alert(
+        'Erro de autenticação',
+        'Não foi possível realizar o login. Verifique suas credenciais.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -39,8 +77,10 @@ const LoginScreen = ({ navigation }: Props) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
       >
-        <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
-
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.header}>
             <Image
               source={require('../assets/images/fyora-login.png')}
@@ -71,7 +111,11 @@ const LoginScreen = ({ navigation }: Props) => {
             </TouchableOpacity>
 
             <View style={styles.buttonContainer}>
-              <AppButton title="Entrar" onPress={handleLogin} />
+              <AppButton
+                title={loading ? 'Entrando...' : 'Entrar'}
+                onPress={handleLogin}
+                disabled={loading}
+              />
             </View>
           </View>
 

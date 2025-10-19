@@ -1,6 +1,35 @@
 {
-  "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true
-  }
+    /* Linguagem e módulos */
+    "target": "esnext",
+    "module": "esnext",
+    "lib": ["esnext"],
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+
+    /* JSX (React Native) */
+    "jsx": "react-native",
+
+    /* Verificações e boas práticas */
+    "strict": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "esModuleInterop": true,
+
+    /* Paths e estrutura */
+    "baseUrl": ".",
+    "paths": {
+      "@components/*": ["components/*"],
+      "@screens/*": ["screens/*"],
+      "@navigation/*": ["navigation/*"],
+      "@constants/*": ["constants/*"],
+      "@types/*": ["types/*"],
+      "@lib/*": ["lib/*"],
+      "@middleware/*": ["middleware/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules"]
 }

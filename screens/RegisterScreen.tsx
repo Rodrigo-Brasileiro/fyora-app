@@ -16,6 +16,8 @@ import { AuthStackParamList } from '../navigation/types';
 import { Colors } from '../constants/Colors';
 import AppTextInput from '../components/AppTextInput';
 import AppButton from '../components/AppButton';
+import { sanitizeString, validateEmail, validatePassword } from '../lib/validation';
+import { registerRequest } from '../services/auth';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
 
@@ -26,20 +28,75 @@ const RegisterScreen = ({ navigation }: Props) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = () => {
-    if (!name || !cpf || !phone || !email || !password || !confirmPassword) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos.');
+  const isValidCPF = (cpfValue: string) => {
+    const cleanCPF = cpfValue.replace(/[^\d]/g, '');
+    return cleanCPF.length === 11;
+  };
+
+  const handleRegister = async () => {
+    const cleanName = sanitizeString(name).trim();
+    const cleanCPF = sanitizeString(cpf);
+    const cleanPhone = sanitizeString(phone);
+    const cleanEmail = sanitizeString(email).trim().toLowerCase();
+    const cleanPassword = sanitizeString(password);
+    const cleanConfirm = sanitizeString(confirmPassword);
+
+    // Validações básicas
+    if (!cleanName || !cleanCPF || !cleanPhone || !cleanEmail || !cleanPassword || !cleanConfirm) {
+      Alert.alert('Campos obrigatórios', 'Por favor, preencha todos os campos.');
       return;
     }
-    if (password !== confirmPassword) {
-      Alert.alert('Erro', 'As senhas não coincidem.');
+
+    if (!isValidCPF(cleanCPF)) {
+      Alert.alert('CPF inválido', 'Por favor, insira um CPF válido com 11 dígitos.');
       return;
     }
-    console.log('Registering with:', { name, cpf, phone, email });
 
-    Alert.alert('Sucesso!', 'Sua conta foi criada. Faça o login para começar.');
-    navigation.navigate('Login');
+    if (!validateEmail(cleanEmail)) {
+      Alert.alert('E-mail inválido', 'Insira um endereço de e-mail válido.');
+      return;
+    }
+
+    if (!validatePassword(cleanPassword)) {
+      Alert.alert(
+        'Senha fraca',
+        'A senha deve conter pelo menos 8 caracteres, um número e uma letra maiúscula.'
+      );
+      return;
+    }
+
+    if (cleanPassword !== cleanConfirm) {
+      Alert.alert('Senhas diferentes', 'As senhas informadas não coincidem.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log('Tentando cadastro com:', { cleanName, cleanCPF, cleanPhone, cleanEmail });
+
+      // Chamada simulada de registro (ajuste com seu endpoint real)
+      const response = await registerRequest({
+        name: cleanName,
+        cpf: cleanCPF,
+        phone: cleanPhone,
+        email: cleanEmail,
+        password: cleanPassword,
+      });
+
+      if (response.success) {
+        Alert.alert('Sucesso!', 'Sua conta foi criada com sucesso.');
+        navigation.navigate('Login');
+      } else {
+        Alert.alert('Erro no cadastro', response.message || 'Tente novamente mais tarde.');
+      }
+    } catch (err: any) {
+      console.error('Erro ao registrar:', err);
+      Alert.alert('Erro', 'Não foi possível concluir o cadastro.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -58,15 +115,51 @@ const RegisterScreen = ({ navigation }: Props) => {
           </View>
 
           <View style={styles.card}>
-            <AppTextInput label="Seu Nome" value={name} onChangeText={setName} placeholder="Digite seu nome completo" />
-            <AppTextInput label="Seu CPF" value={cpf} onChangeText={setCpf} placeholder="000.000.000-00" keyboardType="numeric" />
-            <AppTextInput label="Seu Telefone" value={phone} onChangeText={setPhone} placeholder="(00) 00000-0000" keyboardType="phone-pad" />
-            <AppTextInput label="Seu E-mail" value={email} onChangeText={setEmail} placeholder="seu@email.com" keyboardType="email-address" autoCapitalize="none" />
-            <AppTextInput label="Sua Senha" value={password} onChangeText={setPassword} placeholder="Crie uma senha forte" secureTextEntry />
-            <AppTextInput label="Confirme sua Senha" value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Repita a senha" secureTextEntry />
+            <AppTextInput
+              label="Seu Nome"
+              value={name}
+              onChangeText={setName}
+              placeholder="Digite seu nome completo"
+            />
+            <AppTextInput
+              label="Seu CPF"
+              value={cpf}
+              onChangeText={setCpf}
+              placeholder="000.000.000-00"
+              keyboardType="numeric"
+            />
+            <AppTextInput
+              label="Seu Telefone"
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="(00) 00000-0000"
+              keyboardType="phone-pad"
+            />
+            <AppTextInput
+              label="Seu E-mail"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="seu@email.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <AppTextInput
+              label="Sua Senha"
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Crie uma senha forte"
+              secureTextEntry
+            />
+            <AppTextInput
+              label="Confirme sua Senha"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder="Repita a senha"
+              secureTextEntry
+            />
 
             <View style={{ marginTop: 16 }}>
-              <AppButton title="Cadastrar-se" onPress={handleRegister} />
+              <AppButton title={loading ? 'Cadastrando...' : 'Cadastrar-se'} onPress={handleRegister} disabled={loading} />
             </View>
           </View>
 

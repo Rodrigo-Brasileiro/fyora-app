@@ -1,0 +1,6 @@
+rules:
+  - id: no-plaintext-http
+    message: "Evite links em http:// — use HTTPS"
+    languages: [javascript, typescript, html, jsx, tsx]
+    severity: WARNING
+    pattern: "http://$X"

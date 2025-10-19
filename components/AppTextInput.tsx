@@ -1,21 +1,26 @@
 import React from 'react';
 import { View, Text, TextInput, StyleSheet, TextInputProps } from 'react-native';
 import { Colors } from '../constants/Colors';
+import { sanitizeString } from '../lib/validation';
 
 interface Props extends TextInputProps {
   label: string;
 }
 
-const AppTextInput: React.FC<Props> = ({ label, ...props }) => {
+const AppTextInput: React.FC<Props> = ({ value, onChangeText, ...rest }) => {
+  const handleChange = (text: string) => {
+    const cleaned = sanitizeString(text);
+    if (onChangeText) onChangeText(cleaned);
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        style={styles.input}
-        placeholderTextColor={Colors.placeholder}
-        {...props}
-      />
-    </View>
+    <TextInput
+      value={value}
+      onChangeText={handleChange}
+      autoCapitalize="none"
+      autoCorrect={false}
+      {...rest}
+    />
   );
 };
 

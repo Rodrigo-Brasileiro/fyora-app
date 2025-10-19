@@ -1,0 +1,43 @@
+name: Security CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  security-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🔹 Checkout do código
+        uses: actions/checkout@v4
+
+      - name: 🔹 Instalar dependências
+        run: |
+          cd fyora-app
+          npm ci
+
+      - name: 🔹 Rodar testes automatizados (unitários)
+        run: |
+          cd fyora-app
+          npm test -- --ci --coverage
+
+      - name: 🔹 Rodar SAST (Semgrep via Docker)
+        run: |
+          cd fyora-app
+          docker run --rm -v "$(pwd):/src" returntocorp/semgrep semgrep \
+            --config /src/.semgrep/rules /src --json > reports/semgrep/semgrep.json
+
+      - name: 🔹 Rodar script de segurança local (SCA + DAST)
+        run: |
+          cd fyora-app
+          chmod +x scripts/run-security-checks.sh
+          ./scripts/run-security-checks.sh
+
+      - name: 🔹 Fazer upload dos relatórios
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: fyora-app/reports/
