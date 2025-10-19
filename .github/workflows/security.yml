@@ -1,0 +1,49 @@
+name: GitHub Security Scan
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 3 * * *' # roda todo dia às 3h da manhã
+
+jobs:
+  codeql:
+    name: Análise de Segurança (CodeQL)
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+      - name: 🔹 Checkout do código
+        uses: actions/checkout@v4
+
+      - name: 🔹 Configurar CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+
+      - name: 🔹 Executar varredura
+        uses: github/codeql-action/analyze@v3
+
+  dependabot:
+    name: Análise de Dependências (SCA)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔹 Checkout do código
+        uses: actions/checkout@v4
+
+      - name: 🔹 Instalar dependências (modo compatível)
+        run: npm install --legacy-peer-deps
+
+      - name: 🔹 Executar análise com npm audit
+        run: |
+          mkdir -p reports
+          npm audit --json > reports/npm-audit.json
+
+      - name: 📤 Fazer upload do relatório
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-report
+          path: reports/npm-audit.json

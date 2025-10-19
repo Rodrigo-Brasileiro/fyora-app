@@ -1,4 +1,3 @@
-// fyora-app/tests/unit/validation.test.ts
 import { validateEmail, validatePassword, sanitizeString } from '../../lib/validation';
 
 describe('validation lib', () => {
